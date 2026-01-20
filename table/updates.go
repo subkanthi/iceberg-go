@@ -29,18 +29,21 @@ import (
 
 // These are the various update actions defined in the iceberg spec
 const (
-	UpdateAddSpec      = "add-spec"
-	UpdateAddSchema    = "add-schema"
-	UpdateAddSnapshot  = "add-snapshot"
-	UpdateAddSortOrder = "add-sort-order"
+	UpdateAddSpec          = "add-spec"
+	UpdateAddSchema        = "add-schema"
+	UpdateAddSnapshot      = "add-snapshot"
+	UpdateAddSortOrder     = "add-sort-order"
+	UpdateAddEncryptionKey = "add-encryption-key"
 
 	UpdateAssignUUID = "assign-uuid"
 
-	UpdateRemoveProperties  = "remove-properties"
-	UpdateRemoveSchemas     = "remove-schemas"
-	UpdateRemoveSnapshots   = "remove-snapshots"
-	UpdateRemoveSnapshotRef = "remove-snapshot-ref"
-	UpdateRemoveSpec        = "remove-partition-specs"
+	UpdateRemoveProperties    = "remove-properties"
+	UpdateRemoveSchemas       = "remove-schemas"
+	UpdateRemoveSnapshots     = "remove-snapshots"
+	UpdateRemoveSnapshotRef   = "remove-snapshot-ref"
+	UpdateRemoveSpec          = "remove-partition-specs"
+	UpdateRemoveStatistics    = "remove-statistics"
+	UpdateRemoveEncryptionKey = "remove-encryption-key"
 
 	UpdateSetCurrentSchema    = "set-current-schema"
 	UpdateSetDefaultSortOrder = "set-default-sort-order"
@@ -48,6 +51,7 @@ const (
 	UpdateSetLocation         = "set-location"
 	UpdateSetProperties       = "set-properties"
 	UpdateSetSnapshotRef      = "set-snapshot-ref"
+	UpdateSetStatistics       = "set-statistics"
 
 	UpdateUpgradeFormatVersion = "upgrade-format-version"
 )
@@ -112,6 +116,14 @@ func (u *Updates) UnmarshalJSON(data []byte) error {
 			upd = &removeSpecUpdate{}
 		case UpdateRemoveSchemas:
 			upd = &removeSchemasUpdate{}
+		case UpdateSetStatistics:
+			upd = &setStatisticsUpdate{}
+		case UpdateRemoveStatistics:
+			upd = &removeStatisticsUpdate{}
+		case UpdateAddEncryptionKey:
+			upd = &addEncryptionKeyUpdate{}
+		case UpdateRemoveEncryptionKey:
+			upd = &removeEncryptionKeyUpdate{}
 		default:
 			return fmt.Errorf("%w: unknown update action: %s", iceberg.ErrInvalidArgument, base.ActionName)
 		}
@@ -554,4 +566,83 @@ func NewRemoveSchemasUpdate(schemaIds []int) *removeSchemasUpdate {
 
 func (u *removeSchemasUpdate) Apply(builder *MetadataBuilder) error {
 	return builder.RemoveSchemas(u.SchemaIDs)
+}
+
+type setStatisticsUpdate struct {
+	baseUpdate
+	SnapshotID int64          `json:"snapshot-id"`
+	Statistics StatisticsFile `json:"statistics"`
+}
+
+// NewSetStatisticsUpdate creates a new update that sets the statistics for a snapshot.
+func NewSetStatisticsUpdate(snapshotID int64, statistics StatisticsFile) *setStatisticsUpdate {
+	return &setStatisticsUpdate{
+		baseUpdate: baseUpdate{ActionName: UpdateSetStatistics},
+		SnapshotID: snapshotID,
+		Statistics: statistics,
+	}
+}
+
+func (u *setStatisticsUpdate) Apply(builder *MetadataBuilder) error {
+	return fmt.Errorf("%w: %s", iceberg.ErrNotImplemented, UpdateSetStatistics)
+}
+
+type removeStatisticsUpdate struct {
+	baseUpdate
+	SnapshotID int64 `json:"snapshot-id"`
+}
+
+// NewRemoveStatisticsUpdate creates a new update that removes the statistics for a snapshot.
+func NewRemoveStatisticsUpdate(snapshotID int64) *removeStatisticsUpdate {
+	return &removeStatisticsUpdate{
+		baseUpdate: baseUpdate{ActionName: UpdateRemoveStatistics},
+		SnapshotID: snapshotID,
+	}
+}
+
+func (u *removeStatisticsUpdate) Apply(builder *MetadataBuilder) error {
+	return fmt.Errorf("%w: %s", iceberg.ErrNotImplemented, UpdateRemoveStatistics)
+}
+
+// EncryptedKey represents an encryption key in Iceberg table metadata.
+// This is used for key rotation and encryption management.
+type EncryptedKey struct {
+	KeyID         string `json:"key-id"`
+	WrappedKey    string `json:"wrapped-key"`
+	KeyMetadata   string `json:"key-metadata,omitempty"`
+	EncryptionAlg string `json:"encryption-algorithm,omitempty"`
+}
+
+type addEncryptionKeyUpdate struct {
+	baseUpdate
+	EncryptionKey EncryptedKey `json:"encryption-key"`
+}
+
+// NewAddEncryptionKeyUpdate creates a new update that adds an encryption key to the table metadata.
+func NewAddEncryptionKeyUpdate(key EncryptedKey) *addEncryptionKeyUpdate {
+	return &addEncryptionKeyUpdate{
+		baseUpdate:    baseUpdate{ActionName: UpdateAddEncryptionKey},
+		EncryptionKey: key,
+	}
+}
+
+func (u *addEncryptionKeyUpdate) Apply(builder *MetadataBuilder) error {
+	return fmt.Errorf("%w: %s", iceberg.ErrNotImplemented, UpdateAddEncryptionKey)
+}
+
+type removeEncryptionKeyUpdate struct {
+	baseUpdate
+	KeyID string `json:"key-id"`
+}
+
+// NewRemoveEncryptionKeyUpdate creates a new update that removes an encryption key from the table metadata.
+func NewRemoveEncryptionKeyUpdate(keyID string) *removeEncryptionKeyUpdate {
+	return &removeEncryptionKeyUpdate{
+		baseUpdate: baseUpdate{ActionName: UpdateRemoveEncryptionKey},
+		KeyID:      keyID,
+	}
+}
+
+func (u *removeEncryptionKeyUpdate) Apply(builder *MetadataBuilder) error {
+	return fmt.Errorf("%w: %s", iceberg.ErrNotImplemented, UpdateRemoveEncryptionKey)
 }

@@ -19,6 +19,7 @@ package table
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/apache/iceberg-go"
@@ -232,4 +233,59 @@ func TestUnmarshalUpdates(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetStatistics(t *testing.T) {
+	var builder *MetadataBuilder
+	update := setStatisticsUpdate{
+		SnapshotID: 123,
+		Statistics: StatisticsFile{
+			SnapshotID:     123,
+			StatisticsPath: "s3://bucket/stats.puffin",
+		},
+	}
+	t.Run("set statistics should fail with not implemented", func(t *testing.T) {
+		if err := update.Apply(builder); !errors.Is(err, iceberg.ErrNotImplemented) {
+			t.Fatalf("Expected unimplemented error, got %v", err)
+		}
+	})
+}
+
+func TestRemoveStatistics(t *testing.T) {
+	var builder *MetadataBuilder
+	update := removeStatisticsUpdate{
+		SnapshotID: 123,
+	}
+	t.Run("remove statistics should fail with not implemented", func(t *testing.T) {
+		if err := update.Apply(builder); !errors.Is(err, iceberg.ErrNotImplemented) {
+			t.Fatalf("Expected unimplemented error, got %v", err)
+		}
+	})
+}
+
+func TestAddEncryptionKey(t *testing.T) {
+	var builder *MetadataBuilder
+	update := addEncryptionKeyUpdate{
+		EncryptionKey: EncryptedKey{
+			KeyID:      "key-1",
+			WrappedKey: "base64-wrapped-key",
+		},
+	}
+	t.Run("add encryption key should fail with not implemented", func(t *testing.T) {
+		if err := update.Apply(builder); !errors.Is(err, iceberg.ErrNotImplemented) {
+			t.Fatalf("Expected unimplemented error, got %v", err)
+		}
+	})
+}
+
+func TestRemoveEncryptionKey(t *testing.T) {
+	var builder *MetadataBuilder
+	update := removeEncryptionKeyUpdate{
+		KeyID: "key-1",
+	}
+	t.Run("remove encryption key should fail with not implemented", func(t *testing.T) {
+		if err := update.Apply(builder); !errors.Is(err, iceberg.ErrNotImplemented) {
+			t.Fatalf("Expected unimplemented error, got %v", err)
+		}
+	})
 }
